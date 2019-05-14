@@ -28,8 +28,11 @@ int main() {
     
     Ring<int> kap(rin);
     kap.print();
+    std::cout << std::endl;
     kap.remove_all(2);
     kap.print();
     std::cout << std::endl;
+    //kap.erase();
+    kap.test();
     
 }
