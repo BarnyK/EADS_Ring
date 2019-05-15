@@ -9,7 +9,6 @@
 #include "templates.hpp"
 
 int main() {
-    /*
     // additions
     Ring<int> rin;
     rin.push_back(1);
@@ -46,19 +45,17 @@ int main() {
     else{
         std::cout << "There is no 4 in this ring" << std::endl;
     }
-    rin.erase()
-    */
-    Ring<int> rin;
+    rin.erase();
+     
     Ring<int> x,y;
     rin.push_back(1);
     rin.push_back(2);
     rin.push_back(3);
     rin.push_back(4);
     rin.push_back(5);
-    rin.push_back(6);
     std::cout << "Source" << std::endl;
     rin.print();
-    split(rin, x, 0, 3, y, 0, 3);
+    split(rin, x, 1, 3, y, 0, 6);
     std::cout << "First result" << std::endl;
     x.print();
     std::cout << "Second result" << std::endl;

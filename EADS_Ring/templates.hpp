@@ -6,7 +6,7 @@
 
 
 template<typename Key>
-class Ring{ // double linked, with iterator
+class Ring{
 private:
     struct Node{
         Key key;
@@ -23,18 +23,15 @@ private:
             next = nullptr;
             prev = nullptr;
         }
-        void print(){
-            std::cout << key << std::endl;
-        }
     };
     
     Node* head;
     int length;
     
-    void remove(Node*);                                         //donew
-    Node* ptr_find(Key,int n=0);                                //donew
-    bool insert_between(Key k, Node* first, Node* second);      //donew
-    bool insert_around(Key target, Key k, int n, bool front);   //donew
+    void remove(Node*);
+    Node* ptr_find(Key,int n=0);
+    bool insert_between(Key k, Node* first, Node* second);
+    bool insert_around(Key target, Key k, int n, bool front);
 public:
     struct Iterator{
         Node* node;
@@ -67,24 +64,28 @@ public:
     Ring(Ring &);
     ~Ring();
     
-    Iterator begin();
-    Iterator iter_find(Key, int n=0);
+    // Iterator functions
+    Iterator begin() const;
+    Iterator iter_find(Key, int n=0) const;
     
-    void push_back(Key);
-    void push_front(Key);
+    // Addition
+    bool push_back(Key);
+    bool push_front(Key);
     bool insert_after(Key after, Key k, int n=0);
     bool insert_before(Key before, Key k, int n=0);
     
+    // Removal
     void remove(Key, int n=0);
     int remove_all(Key);
     void erase();
     
+    // Qualify of life
     int count(Key);
     void shift_head(int x);
     bool find(Key);
     void print();
     bool is_empty(){return head == nullptr;}
-    int size(){return length;}
+    int size() const{return length;}
 };
 
 // Copy constructor using iterator
@@ -115,6 +116,8 @@ int Ring<Key>::count(Key k){
     return c;
 }
 
+// Shifts the 'head' element of the ring in position
+// Takes any integer but it will not rotate more than 1 full cycle
 template <class Key>
 void Ring<Key>::shift_head(int x){
     bool reverse;
@@ -125,7 +128,8 @@ void Ring<Key>::shift_head(int x){
     else{
         reverse = 0;
     }
-    for(int i=0;i<x;i++){
+    x = x % size();
+    for(int i=0;i < x;i++){
         if(reverse){
             head = head->prev;
         }
@@ -137,15 +141,15 @@ void Ring<Key>::shift_head(int x){
 
 // Begin function, returning iterator with head for ring
 template <class Key>
-typename Ring<Key>::Iterator Ring<Key>::begin(){
+typename Ring<Key>::Iterator Ring<Key>::begin() const{
     return Ring<Key>::Iterator(head);
 }
 
 // Function to get iterator starting with n-th occurance of a node with given key
 // Throws exception if there isn't a node with given key
 template <class Key>
-typename Ring<Key>::Iterator Ring<Key>::iter_find(Key k,int n){
-    for(Ring<Key>::Iterator it = this->begin(); it.offset() < this->size(); it++){
+typename Ring<Key>::Iterator Ring<Key>::iter_find(Key k,int n) const{
+    for(Ring<Key>::Iterator it = this->begin(); it.offset() < size(); it++){
         if((*it).key == k){
             if(n == 0){
                 it.off = 0;
@@ -164,7 +168,7 @@ typename Ring<Key>::Node* Ring<Key>::ptr_find(Key k,int n){
     return this->iter_find(k,n).node;
 }
 
-//
+// Returns true if there is a given Key in the ring
 template <class Key>
 bool Ring<Key>::find(Key k){
     try{
@@ -187,24 +191,27 @@ bool Ring<Key>::insert_between(Key k, Node* first, Node* second){
 
 // Appends at the end of cycle
 template <class Key>
-void Ring<Key>::push_back(Key k){
+bool Ring<Key>::push_back(Key k){
     if(!head){
         head = new Node(k);
         head->next = head;
         head->prev = head;
+        length++;
+        return 0;
     }
     else{
-        this->insert_between(k, head->prev, head);
+        length++;
+        return this->insert_between(k, head->prev, head);
     }
-    length++;
 }
 
 
 // Adds element to the front
 template <class Key>
-void Ring<Key>::push_front(Key k){
-    this->push_back(k);
+bool Ring<Key>::push_front(Key k){
+    bool b = this->push_back(k);
     head = head->prev;
+    return b;
 }
 
 
@@ -306,16 +313,31 @@ void Ring<Key>::print(){
     }
 }
 
+
+// Splits source rings into 2 given rings
+// Res1 starts from 0 and get every even element appended according to given direction
+// Res1 starts from 1 and get every odd element appended according to given direction
+// Dir == True is clockwise
 template<typename Key>
 void split(const Ring<Key>& source,
            Ring<Key>& result1, bool dir1, int len1,
            Ring<Key>& result2, bool dir2, int len2){
-    // every second element in direction indicated of length len
-    // res1 starts from 0 element goes to right appends front
-    // res2 starts from 1 element goes to right appends back
-    // Dir indicates direction which the links are going
-    typename Ring<Key>::Iterator it;
+    result1.erase();
+    result2.erase();
     
-    result1.push_back(1);
+    for(typename Ring<Key>::Iterator it = source.begin(); it.offset() < (len1>len2 ? 2 * len1 - 1 : 2 * len2); it++){
+        if(it.offset()%2==0 && result1.size() < len1){
+            if(dir1)
+                result1.push_back((*it).key);
+            else
+                result1.push_front((*it).key);
+        }
+        if(it.offset()%2==1 && result2.size() < len2){
+            if(dir2)
+                result2.push_back((*it).key);
+            else
+                result2.push_front((*it).key);
+        }
+    }
 }
 #endif /* templates_hpp */
