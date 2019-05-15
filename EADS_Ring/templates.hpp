@@ -4,11 +4,7 @@
 #include <stdio.h>
 #include <exception>
 
-// With iterator
-// Iterator jump links by number function to jump 2 elements
-// Define * dereference
-// Define begin
-// Define ++, !=, +=2(?), --(since it's a ring)
+
 template<typename Key>
 class Ring{ // double linked, with iterator
 private:
@@ -35,12 +31,10 @@ private:
     Node* head;
     int length;
     
-    
-    void push_back(Node);                                       //
-    void push_front(Node);                                      //
-    Node* ptr_find(Key,int n=0);                                        //done
-    bool insert_between(Key k, Node* first, Node* second);      //done
-    bool insert_around(Key target, Key k, int n, bool front);   //done
+    void remove(Node*);                                         //donew
+    Node* ptr_find(Key,int n=0);                                //donew
+    bool insert_between(Key k, Node* first, Node* second);      //donew
+    bool insert_around(Key target, Key k, int n, bool front);   //donew
 public:
     struct Iterator{
         Node* node;
@@ -70,37 +64,28 @@ public:
     };
     
     Ring():head(nullptr),length(0){}
-    Ring(Ring &);           // done
-    ~Ring();                // done
+    Ring(Ring &);
+    ~Ring();
     
-    int test();
+    Iterator begin();
+    Iterator iter_find(Key, int n=0);
     
-    Iterator begin();           //done
-    Iterator iter_find(Key, int n=0);    //done
+    void push_back(Key);
+    void push_front(Key);
+    bool insert_after(Key after, Key k, int n=0);
+    bool insert_before(Key before, Key k, int n=0);
     
-    void push_back(Key);                                //done
-    void push_front(Key);                               //done
-    bool insert_after(Key after, Key k, int n=0);       //done
-    bool insert_before(Key before, Key k, int n=0);     //done
-    
-    bool remove(Key, int n=0);      // done
-    bool remove_all(Key);           // done
-    void erase();                   // done
+    void remove(Key, int n=0);
+    int remove_all(Key);
+    void erase();
     
     int count(Key);
     void shift_head(int x);
     bool find(Key);
-    void print();                   // done
-    bool is_empty(){return head == nullptr;}    //done
+    void print();
+    bool is_empty(){return head == nullptr;}
     int size(){return length;}
 };
-
-// Test for private functions
-template <class Key>
-int Ring<Key>::test(){
-    std::cout << ptr_find(3)->key << std::endl;
-    return 1;
-}
 
 // Copy constructor using iterator
 template <class Key>
@@ -119,6 +104,36 @@ Ring<Key>::~Ring(){
     delete head;
 }
 
+// Counts occurances of a given Key
+template <class Key>
+int Ring<Key>::count(Key k){
+    int c = 0;
+    for(Ring<Key>::Iterator it = this->begin(); it.offset() < this->size(); it++){
+        if( (*it).key == k)
+            c++;
+    }
+    return c;
+}
+
+template <class Key>
+void Ring<Key>::shift_head(int x){
+    bool reverse;
+    if(x < 0){
+        reverse = 1;
+        x = -x;
+    }
+    else{
+        reverse = 0;
+    }
+    for(int i=0;i<x;i++){
+        if(reverse){
+            head = head->prev;
+        }
+        else{
+            head = head->next;
+        }
+    }
+}
 
 // Begin function, returning iterator with head for ring
 template <class Key>
@@ -126,8 +141,8 @@ typename Ring<Key>::Iterator Ring<Key>::begin(){
     return Ring<Key>::Iterator(head);
 }
 
-// Function to get iterator starting with element of with given key
-// Throws exception if there is node with given key
+// Function to get iterator starting with n-th occurance of a node with given key
+// Throws exception if there isn't a node with given key
 template <class Key>
 typename Ring<Key>::Iterator Ring<Key>::iter_find(Key k,int n){
     for(Ring<Key>::Iterator it = this->begin(); it.offset() < this->size(); it++){
@@ -139,7 +154,7 @@ typename Ring<Key>::Iterator Ring<Key>::iter_find(Key k,int n){
             n--;
         }
     }
-    throw std::invalid_argument("Value not found");
+    throw std::invalid_argument("Element of given parameters not found");
 }
 
 // Private, returns a pointer to element with given key
@@ -147,6 +162,17 @@ typename Ring<Key>::Iterator Ring<Key>::iter_find(Key k,int n){
 template <class Key>
 typename Ring<Key>::Node* Ring<Key>::ptr_find(Key k,int n){
     return this->iter_find(k,n).node;
+}
+
+//
+template <class Key>
+bool Ring<Key>::find(Key k){
+    try{
+        ptr_find(k);
+        return 1;
+    }catch(std::invalid_argument){
+        return 0;
+    }
 }
 
 // Inserts a new key between 2 nodes
@@ -185,61 +211,57 @@ void Ring<Key>::push_front(Key k){
 // Inserts new node in before or after the given node
 template <class Key>
 bool Ring<Key>::insert_around(Key target, Key k, int n, bool front){
-    try{
-        Node* tmp = ptr_find(target);
-        if(front)
-            insert_between(k,tmp,tmp->next);
-        else
-            insert_between(k,tmp->prev,tmp);
-        return 1;
-    }catch(std::invalid_argument){
-        return 0;
-    }
+    Node* tmp = ptr_find(target,n);
+    length++;
+    if(front)
+        return insert_between(k,tmp,tmp->next);
+    else
+        return insert_between(k,tmp->prev,tmp);
 }
 
 // Inserts a node after n-th node with given key, default n=0 for first element
 template <class Key>
 bool Ring<Key>::insert_after(Key after, Key k, int n){
-    return this->insert_around(after, k, n, 1);
+    return insert_around(after, k, n, 1);
 }
 
 // Inserts a node before n-th node with given key, default n=0 for first element
 template <class Key>
 bool Ring<Key>::insert_before(Key after, Key k, int n){
-    return this->insert_around(after, k, n, 0);
+    return insert_around(after, k, n, 0);
+}
+
+
+// Removes using node pointer
+template <class Key>
+void Ring<Key>::remove(Node* x){
+    if(x->next == x && x == x->prev){
+        delete x;
+        length--;
+    }
+    else{
+        x->prev->next = x->next;
+        x->next->prev = x->prev;
+        delete x;
+        length--;
+    }
 }
 
 // Removes n-th node with given key
+// ptr_find function will raise an exception if arguments are invalid
 template<class Key>
-bool Ring<Key>::remove(Key x, int n){
-    if(this->size() == 1 && head->key == x){
-        delete head;
-        head = nullptr;
-        length--;
-        return 0;
-    }
-    for(Ring<Key>::Iterator it = this->begin(); it.offset() != this->size(); it++){
-        if((*it).key == x){
-            if(n==0){
-                (*it).prev->next = (*it).next;
-                (*it).next->prev = (*it).prev;
-                length--;
-                delete it.current;
-                return 0;
-            }
-            n--;
-        }
-    }
-    return 1;
+void Ring<Key>::remove(Key k, int n){
+    remove(ptr_find(k,n));
 }
 
 // Removes all nodes with given key
 template<class Key>
-bool Ring<Key>::remove_all(Key x){
+int Ring<Key>::remove_all(Key x){
     bool f = 0;
     Node* tmp1 = head;
     Node* tmp2;
     int off = 0;
+    int removed = 0;
     while(off < length){
         if(tmp1->key == x){
             tmp2 = tmp1;
@@ -250,6 +272,7 @@ bool Ring<Key>::remove_all(Key x){
                 head = tmp2->next;
             delete tmp2;
             length--;
+            removed++;
             f = 1;
         }
         else{
@@ -257,9 +280,8 @@ bool Ring<Key>::remove_all(Key x){
             tmp1 = tmp1->next;
         }
     }
-    return f;
+    return removed;
 }
-
 
 // Removes all elements from the list
 template <class Key>
@@ -292,5 +314,8 @@ void split(const Ring<Key>& source,
     // res1 starts from 0 element goes to right appends front
     // res2 starts from 1 element goes to right appends back
     // Dir indicates direction which the links are going
+    typename Ring<Key>::Iterator it;
+    
+    result1.push_back(1);
 }
 #endif /* templates_hpp */
